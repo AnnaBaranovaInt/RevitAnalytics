@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>4096ecd8-1712-45fd-b7cb-17b019490953</ProjectGuid>
+    <ProjectGuid>{4096ECD8-1712-45FD-B7CB-17B019490953}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>RevitAnalytics</RootNamespace>
@@ -31,24 +31,95 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System"/>
-    
-    <Reference Include="System.Core"/>
-    <Reference Include="System.Xml.Linq"/>
-    <Reference Include="System.Data.DataSetExtensions"/>
-    
-    
-    <Reference Include="Microsoft.CSharp"/>
-    
-    <Reference Include="System.Data"/>
-    
-    <Reference Include="System.Net.Http"/>
-    
-    <Reference Include="System.Xml"/>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="RevitAPI">
+      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\Revit 2024\RevitAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\Revit 2024\RevitAPIUI.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitDBAPI">
+      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\Revit 2024\RevitDBAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitUIAPI">
+      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\Revit 2024\RevitUIAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="SAP2000v1">
+      <HintPath>..\..\..\..\..\..\Program Files\Computers and Structures\SAP2000 23\SAP2000v1.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="App.cs" />
     <Compile Include="Class1.cs" />
+    <Compile Include="Commands\CmdToSap.cs" />
+    <Compile Include="Commands\CmdUpdateRevitFromSap.cs" />
+    <Compile Include="Commands\CmdUpdateSapFromRevit.cs" />
+    <Compile Include="Commands\CommandWPF.cs" />
+    <Compile Include="Commands\ExportAnalyticalModelToSap.cs" />
+    <Compile Include="Commands\LogMaterials - Copia.cs" />
+    <Compile Include="Converters\UnitConverter.cs" />
+    <Compile Include="Core\AnalyticalElementInfo.cs" />
+    <Compile Include="Core\AnalyticalFrameElementInfo.cs" />
+    <Compile Include="Core\AnalyticalPanelElementInfo.cs" />
+    <Compile Include="Core\MaterialInfo.cs" />
+    <Compile Include="Core\SectionInfoOLD.cs" />
+    <Compile Include="Core\Sections\Concrete\BoxSection.cs" />
+    <Compile Include="Core\Sections\Concrete\CircularSection.cs" />
+    <Compile Include="Core\Sections\Concrete\PipeSection.cs" />
+    <Compile Include="Core\Sections\Concrete\PrecastIBulbTeeGirderSection.cs" />
+    <Compile Include="Core\Sections\Concrete\PrecastSuperTGirderSection.cs" />
+    <Compile Include="Core\Sections\Concrete\PrecastUGirderSection.cs" />
+    <Compile Include="Core\Sections\Concrete\RectangularSectionGeometry.cs" />
+    <Compile Include="Core\Sections\Concrete\TrapezoidalSectionGeometry.cs" />
+    <Compile Include="Core\Sections\IBeamSectionGeometry.cs" />
+    <Compile Include="Core\Sections\SectionGeometryInfo.cs" />
+    <Compile Include="Core\Sections\SectionInfo.cs" />
+    <Compile Include="Core\Sections\SectionType.cs" />
+    <Compile Include="Core\Sections\Steel\SteelDataBaseUtils.cs" />
+    <Compile Include="DebugHandler\DebugHandler.cs" />
+    <Compile Include="Helpers\PathManager.cs" />
+    <Compile Include="Commands\LogMaterials.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RevitConnector\AnalyticalMemberUtils.cs" />
+    <Compile Include="RevitConnector\PhysicalModel\RevitPhysicalElementUpdater.cs" />
+    <Compile Include="RevitConnector\RevitAnalyticalElementCollector.cs" />
+    <Compile Include="RevitConnector\RevitElementUpdater.cs" />
+    <Compile Include="RevitConnector\Updaters\GeometryUpdater.cs" />
+    <Compile Include="RevitConnector\Updaters\SectionUpdater.cs" />
+    <Compile Include="RevitConnector\Utils\AnalyticalPhysicalUtils.cs" />
+    <Compile Include="RevitConnector\Utils\MaterialUtils.cs" />
+    <Compile Include="SAPConnector\Colors.cs" />
+    <Compile Include="SAPConnector\SapElementCollector.cs" />
+    <Compile Include="SAPConnector\SapElementCreator.cs" />
+    <Compile Include="SAPConnector\SapElementUpdater.cs" />
+    <Compile Include="SAPConnector\SAPFileConnectorcs.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapFrameDistLoad.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapFrameElement.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapFrameResult.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapJointRestraint.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapLoadPattern.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapMaterial.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapPoint.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapPointLoad.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapPointResult.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapRectangularSection.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapShellElement.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapShellElementUpdater.cs" />
+    <Compile Include="SAPConnector\SAPLogic\SapShellSection.cs" />
+    <Compile Include="SAPConnector\SapModelManager.cs" />
+    <Compile Include="SAPConnector\Utils\MaterialUtils.cs" />
+    <Compile Include="SAPConnector\Utils\SectionUtils.cs" />
+    <Compile Include="UI.xaml.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
- </Project>
+</Project>
