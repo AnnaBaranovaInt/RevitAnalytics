@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+	<AddIn Type="Application">
+		<Name>INT_Analytics</Name>
+		<Assembly>C:\Users\baraa\source\repos\RevitAnalytics\RevitAnalytics\bin\Debug\RevitAnalytics.dll</Assembly>
+		<AddInId>0B2F2E8A-9C34-4D7F-AE18-1A3EF9DAD678</AddInId>
+		<FullClassName>RevitAnalytics.App</FullClassName>
+		<VendorId>INTECSA</VendorId>
+		<VendorDescription>Template Automation Tools</VendorDescription>
+		<Description>Updates parameters.</Description>
+		<VisibilityMode>AlwaysVisible</VisibilityMode>
+		<Discipline>Architecture</Discipline>
+		<AddInLanguage>en-US</AddInLanguage>
+	</AddIn>
+</RevitAddIns>

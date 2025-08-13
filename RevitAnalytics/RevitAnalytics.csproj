@@ -66,7 +66,7 @@
     <Compile Include="Commands\CmdUpdateSapFromRevit.cs" />
     <Compile Include="Commands\CommandWPF.cs" />
     <Compile Include="Commands\ExportAnalyticalModelToSap.cs" />
-    <Compile Include="Commands\LogMaterials - Copia.cs" />
+    <Compile Include="Commands\GenerateAnalytics.cs" />
     <Compile Include="Converters\UnitConverter.cs" />
     <Compile Include="Core\AnalyticalElementInfo.cs" />
     <Compile Include="Core\AnalyticalFrameElementInfo.cs" />
@@ -98,6 +98,11 @@
     <Compile Include="RevitConnector\Updaters\SectionUpdater.cs" />
     <Compile Include="RevitConnector\Utils\AnalyticalPhysicalUtils.cs" />
     <Compile Include="RevitConnector\Utils\MaterialUtils.cs" />
+    <Compile Include="RevitPnA\DataTypes.cs" />
+    <Compile Include="RevitPnA\PnAConnector.cs" />
+    <Compile Include="RevitPnA\CollectAnalytics.cs" />
+    <Compile Include="RevitPnA\TrimExtend.cs" />
+    <Compile Include="RevitPnA\UpdateParameters.cs" />
     <Compile Include="SAPConnector\Colors.cs" />
     <Compile Include="SAPConnector\SapElementCollector.cs" />
     <Compile Include="SAPConnector\SapElementCreator.cs" />

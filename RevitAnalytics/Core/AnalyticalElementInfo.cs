@@ -12,6 +12,7 @@ namespace RevitAnalytics.Core
     public class AnalyticalElementInfo
     {
         public ElementId RevitId { get; set; }
+        public string Mark { get; set; } // ✅ Element name in SAP
         public string Label { get; set; }
         public string SectionName { get; set; }
         public string MaterialName { get; set; }

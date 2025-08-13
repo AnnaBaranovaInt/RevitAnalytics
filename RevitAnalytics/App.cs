@@ -26,6 +26,7 @@ namespace RevitAnalytics
                 AddPushButton(panel, "ImportToSAP", "Import to\nSAP 2000", "RevitAnalytics.ExportAnalyticalModelToSap", imagePath1, "Create the model in SAP 2000.");
                 AddPushButton(panel, "UpdateFromSAP", "Update From\nSAP 2000", "RevitAnalytics.CmdUpdateRevitFromSap", imagePath1, "Update the model from SAP 2000.");
                 AddPushButton(panel, "UpdateSAPFromRevit", "Update SAP\nFrom Revit", "RevitAnalytics.CmdUpdateSapFromRevit", imagePath1, "Update SAP 2000 from Revit.");
+                AddPushButton(panel, "GenerateAnalytics", "Generate\nAnalytics", "RevitAnalytics.GenerateAnalytics", imagePath1, "GenerateAnalytics.");
 
                 AddPushButton(panel, "LogMaterials", "Log\nMaterails", "RevitAnalytics.LogMaterials", imagePath1, "Log the materials.");
 
