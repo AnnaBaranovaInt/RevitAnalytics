@@ -35,11 +35,11 @@ namespace RevitAnalytics.RevitConnector.Updaters
             try
             {
                 am.SetCurve(newCurve);
-                DebugHandler.Log($"Updated analytical curve for element {info.RevitId.Value}.", DebugHandler.LogLevel.INFO);
+                DebugHandler.Log($"Updated analytical curve for element {info.Mark}.", DebugHandler.LogLevel.INFO);
             }
             catch (System.Exception ex)
             {
-                DebugHandler.LogError($"Could not update analytical curve for element {info.RevitId.Value}.", ex);
+                DebugHandler.LogError($"Could not update analytical curve for element {info.Mark}.", ex);
             }
         }
 
@@ -62,7 +62,7 @@ namespace RevitAnalytics.RevitConnector.Updaters
                     // Ensure we have at least 3 points (panels must be a closed loop)
                     if (revitPoints.Count < 3)
                     {
-                        DebugHandler.LogError($"Not enough points to define panel boundary for {info.RevitId.Value}.");
+                        DebugHandler.LogError($"Not enough points to define panel boundary for {info.Mark}.");
                         return;
                     }
 
@@ -78,17 +78,17 @@ namespace RevitAnalytics.RevitConnector.Updaters
                     // ✅ Set the boundary for the Analytical Panel using SetOuterContour
                     panel.SetOuterContour(panelBoundary);
 
-                    DebugHandler.Log($"Updated panel boundary for element {info.RevitId.Value}.", DebugHandler.LogLevel.INFO);
+                    DebugHandler.Log($"Updated panel boundary for element {info.Mark}.", DebugHandler.LogLevel.INFO);
                 }
                 catch (System.Exception ex)
                 {
-                    DebugHandler.LogError($"Could not update panel boundary for element {info.RevitId.Value}.", ex);
+                    DebugHandler.LogError($"Could not update panel boundary for element {info.Mark}.", ex);
                 }
-                DebugHandler.Log($"Updated panel boundary for element {info.RevitId.Value}.", DebugHandler.LogLevel.INFO);
+                DebugHandler.Log($"Updated panel boundary for element {info.Mark}.", DebugHandler.LogLevel.INFO);
             }
             catch (System.Exception ex)
             {
-                DebugHandler.LogError($"Could not update panel boundary for element {info.RevitId.Value}.", ex);
+                DebugHandler.LogError($"Could not update panel boundary for element {info.Mark}.", ex);
             }
         }
     }

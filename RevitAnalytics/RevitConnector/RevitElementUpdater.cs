@@ -3,6 +3,7 @@ using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
 using RevitAnalytics.Core;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RevitAnalytics.RevitConnector
 {
@@ -13,30 +14,52 @@ namespace RevitAnalytics.RevitConnector
             try
             {
                 HashSet<string> processedMaterials = new HashSet<string>(); // Track updated
-                HashSet<ElementId> sapElementIds = new HashSet<ElementId>(); // Track elements that exist in SAP
+                HashSet<string> sapElementIds = new HashSet<string>(); // Track elements that exist in SAP
+
+                // Collect all AnalyticalMember and AnalyticalPanel elements
+                var analyticalElements = new FilteredElementCollector(doc)
+                    .WhereElementIsNotElementType()
+                    .WherePasses(new LogicalOrFilter(
+                        new ElementClassFilter(typeof(AnalyticalMember)),
+                        new ElementClassFilter(typeof(AnalyticalPanel))
+                    ))
+                    .ToList();
+
+                Element revitElem = null;
 
                 foreach (var info in sapElements)
                 {
                     // 1️⃣ CHECK IF THE ELEMENT EXISTS
-                    if (info.RevitId.Value == 0)
+                    if (info.Mark.Length == 0)
                         continue;
 
-                    Element revitElem = doc.GetElement(info.RevitId);
+                    // Iterate through the collected elements to find the one with the matching ITS_Mark
+                    foreach (var elem in analyticalElements)
+                    {
+                        var itsMarkParam = elem.LookupParameter("ITS_Mark");
+                        if (itsMarkParam != null && itsMarkParam.HasValue && itsMarkParam.AsString() == info.Mark)
+                        {
+                            revitElem = elem;
+                            break;
+                        }
+                    }
+
                     if (revitElem == null)
                     {
-                        DebugHandler.Log($"Element with RevitId {info.RevitId.Value} not found in Revit model.", DebugHandler.LogLevel.INFO);
+                        DebugHandler.Log($"Element with a mark {info.Mark} not found in Revit model.", DebugHandler.LogLevel.INFO);
                         continue;
                     }
 
-                    DebugHandler.Log($"Found Revit element {info.RevitId.Value} ({revitElem.Name}).", DebugHandler.LogLevel.INFO);
+
+                    DebugHandler.Log($"Found Revit element {info.Mark} ({revitElem.Name}).", DebugHandler.LogLevel.INFO);
 
                     // Ensure the element is an AnalyticalMember before casting
                     if (!(revitElem is AnalyticalMember) && !(revitElem is AnalyticalPanel))
                     {
-                        DebugHandler.Log($"Element {info.RevitId.Value} is not an AnalyticalMember. Skipping update.", DebugHandler.LogLevel.WARNING);
+                        DebugHandler.Log($"Element {info.Mark} is not an AnalyticalMember. Skipping update.", DebugHandler.LogLevel.WARNING);
                         continue;
                     }
-                    sapElementIds.Add(info.RevitId);
+                    sapElementIds.Add(info.Mark);
                     //var elem = revitElem is AnalyticalPanel ? revitElem as AnalyticalPanel : revitElem as AnalyticalMember;
 
 

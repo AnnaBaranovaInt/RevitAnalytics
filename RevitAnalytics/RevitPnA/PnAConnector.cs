@@ -124,48 +124,19 @@ namespace RevitAnalytics.RevitPnA
                     if (analyticalElem != null)
                     {
                         IList<Parameter> allParams = analyticalElem.Parameters.Cast<Parameter>().ToList();
-                        foreach (Parameter param in allParams)
-                        {
-                            string paramName = param.Definition.Name;
-                            string paramType = param.StorageType.ToString();
-                            string paramValue = "";
-                            try
-                            {
-                                switch (param.StorageType)
-                                {
-                                    case StorageType.String:
-                                        paramValue = param.AsString();
-                                        break;
-                                    case StorageType.Double:
-                                        paramValue = param.AsDouble().ToString();
-                                        break;
-                                    case StorageType.Integer:
-                                        paramValue = param.AsInteger().ToString();
-                                        break;
-                                    case StorageType.ElementId:
-                                        paramValue = param.AsElementId().ToString();
-                                        break;
-                                }
-                            }
-                            catch { paramValue = "(error reading value)"; }
 
-                            DebugHandler.Log(
-                                $"[DEBUG] AnalyticalId={info.AnRevitId}: Parameter '{paramName}' (Type={paramType}) Value='{paramValue}'",
-                                DebugHandler.LogLevel.DEBUG);
-                        }
-
-                        Parameter physRepParam = analyticalElem.LookupParameter("ITS_Physical Representation");
-                        if (physRepParam != null && physRepParam.StorageType == StorageType.String)
+                        Parameter physRepParam = analyticalElem.LookupParameter("ITS_Mark");
+                        if (physRepParam != null)
                         {
                             bool setResult = physRepParam.Set(markValue);
                             DebugHandler.Log(
-                                $"Set 'ITS_Physical Representation' to '{markValue}' for AnalyticalId={info.AnRevitId}. Success: {setResult}",
+                                $"Set 'ITS_Mark' to '{markValue}' for AnalyticalId={info.AnRevitId}. Success: {setResult}",
                                 DebugHandler.LogLevel.INFO);
                         }
                         else
                         {
                             DebugHandler.Log(
-                                $"Parameter 'ITS_Physical Representation' not found or not string for AnalyticalId={info.AnRevitId}.",
+                                $"Parameter 'ITS_Mark' not found or not string for AnalyticalId={info.AnRevitId}.",
                                 DebugHandler.LogLevel.WARNING);
                         }
                     }

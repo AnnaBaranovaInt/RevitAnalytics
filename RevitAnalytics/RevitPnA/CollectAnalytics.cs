@@ -16,6 +16,7 @@ namespace RevitAnalytics.RevitPnA
         Column,
         MainBeam,
         SecondaryBeam,
+        TemporaryBeam, 
         Wall,
         Floor,
         Truss,
@@ -37,13 +38,27 @@ namespace RevitAnalytics.RevitPnA
             DebugHandler.Log($"Found {columns.Count} structural columns.", DebugHandler.LogLevel.INFO);
 
             // Buscar todas las vigas estructurales
-            var beams = new FilteredElementCollector(doc)
+            // Exclude temporary beams from the main beams list
+            // Get all beams (unfiltered)
+            var allBeams = new FilteredElementCollector(doc)
                 .OfCategory(BuiltInCategory.OST_StructuralFraming)
                 .WhereElementIsNotElementType()
                 .Cast<FamilyInstance>()
                 .Where(fi => fi.StructuralType == StructuralType.Beam)
                 .ToList();
-            DebugHandler.Log($"Found {beams.Count} structural beams.", DebugHandler.LogLevel.INFO);
+
+            // Separate normal beams and temporary beams
+            var beams = allBeams
+                .Where(b => (b.get_Parameter(BuiltInParameter.ALL_MODEL_MARK)?.AsString() ?? string.Empty)
+                    .IndexOf("T-B", StringComparison.OrdinalIgnoreCase) < 0)
+                .ToList();
+
+            var tempBeams = allBeams
+                .Where(b => (b.get_Parameter(BuiltInParameter.ALL_MODEL_MARK)?.AsString() ?? string.Empty)
+                    .IndexOf("T-B", StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
+
+            DebugHandler.Log($"Found {tempBeams.Count} temporary beams.", DebugHandler.LogLevel.INFO);
 
             // Buscar todos los muros
             var walls = new FilteredElementCollector(doc)
@@ -84,6 +99,9 @@ namespace RevitAnalytics.RevitPnA
             List<RevitAnalyticalElementInfo> beamInfos = GetBeamCurves(beams);
             DebugHandler.Log($"Processed {beamInfos.Count} analytical beams.", DebugHandler.LogLevel.INFO);
 
+            List<RevitAnalyticalElementInfo> tempBeamInfos = GetTemporaryBeamCurves(tempBeams);
+            DebugHandler.Log($"Processed {tempBeamInfos.Count} analytical temporary beams.", DebugHandler.LogLevel.INFO);
+
             // (Opcional) Otros datos geométricos por si los necesitas en paralelo
             var wallFaces = GetWallFaces(walls);
             DebugHandler.Log($"Extracted {wallFaces.Count} wall faces.", DebugHandler.LogLevel.INFO);
@@ -99,10 +117,11 @@ namespace RevitAnalytics.RevitPnA
 
             // Unificar resultados en una sola lista para devolver
             var allInfos = new List<RevitAnalyticalElementInfo>(
-                (columnInfos?.Count ?? 0) + (beamInfos?.Count ?? 0));
+                (columnInfos?.Count ?? 0) + (beamInfos?.Count ?? 0) + (tempBeamInfos?.Count ?? 0));
 
             if (columnInfos != null) allInfos.AddRange(columnInfos);
             if (beamInfos != null) allInfos.AddRange(beamInfos);
+            if (tempBeamInfos != null) allInfos.AddRange(tempBeamInfos);
 
             DebugHandler.Log($"Total analytical elements collected: {allInfos.Count}", DebugHandler.LogLevel.INFO);
 
@@ -136,10 +155,9 @@ namespace RevitAnalytics.RevitPnA
 
                 try
                 {
-                    var matParam = colType?.get_Parameter(BuiltInParameter.STRUCTURAL_MATERIAL_PARAM);
-                    if (matParam != null && matParam.StorageType == StorageType.ElementId)
+                    materialId = col.StructuralMaterialId;
+                    if (materialId != null)
                     {
-                        materialId = matParam.AsElementId();
                         material = doc.GetElement(materialId) as Material;
                         materialName = material?.Name ?? string.Empty;
                     }
@@ -180,7 +198,12 @@ namespace RevitAnalytics.RevitPnA
                 }
 
                 // Obtener el parámetro Mark
-                string mark = col.LookupParameter("Mark")?.AsString() ?? string.Empty;
+                string mark = col.get_Parameter(BuiltInParameter.ALL_MODEL_MARK)?.AsString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(mark))
+                {
+                    DebugHandler.Log($"Column {col.Id} has no Mark parameter.", DebugHandler.LogLevel.WARNING);
+                    continue; // Skip columns without a Mark
+                }
 
                 // Empaquetar resultados
                 var info = new RevitAnalyticalElementInfo
@@ -203,6 +226,113 @@ namespace RevitAnalytics.RevitPnA
             DebugHandler.Log($"Finished analytical column processing. Created {result.Count} analytical column infos.", DebugHandler.LogLevel.INFO);
             return result;
         }
+
+        private static List<RevitAnalyticalElementInfo> GetTemporaryBeamCurves(List<FamilyInstance> tempBeams)
+        {
+            var doc = tempBeams.FirstOrDefault()?.Document;
+            var result = new List<RevitAnalyticalElementInfo>();
+            DebugHandler.Log($"Starting analytical temporary beam processing for {tempBeams.Count} beams.", DebugHandler.LogLevel.INFO);
+
+            foreach (var beam in tempBeams)
+            {
+                var location = beam.Location as LocationCurve;
+                Curve locationLine = location?.Curve;
+
+                // Get type and parameters
+                ElementId typeId = beam.GetTypeId();
+                var beamType = doc.GetElement(typeId) as FamilySymbol;
+
+                // Material
+                ElementId materialId = ElementId.InvalidElementId;
+                Material material = null;
+                string sectionName = beamType?.Name ?? string.Empty;
+                string materialName = string.Empty;
+
+                try
+                {
+                    materialId = beam.StructuralMaterialId;
+                    if (materialId != null)
+                    {
+                        material = doc.GetElement(materialId) as Material;
+                        materialName = material?.Name ?? string.Empty;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHandler.Log($"Error retrieving material for temporary beam {beam.Id}: {ex.Message}", DebugHandler.LogLevel.WARNING);
+                }
+
+                // Get section height
+                double sectionHeight = 0.0;
+                var hParam = beamType?.get_Parameter(BuiltInParameter.STRUCTURAL_SECTION_COMMON_HEIGHT);
+                if (hParam != null && hParam.StorageType == StorageType.Double)
+                    sectionHeight = hParam.AsDouble();
+
+                // Compute downward offset
+                XYZ offsetVector = ComputeDownOffsetVector(locationLine, sectionHeight);
+
+                // Translate the line
+                Curve translatedLine = locationLine;
+                if (locationLine != null && offsetVector != null)
+                {
+                    var t = Transform.CreateTranslation(offsetVector);
+                    translatedLine = locationLine.CreateTransformed(t);
+                }
+
+                // Create the AnalyticalMember
+                AnalyticalMember createdAnalytical = null;
+                if (translatedLine != null)
+                {
+                    createdAnalytical = AnalyticalMember.Create(doc, translatedLine);
+
+                    try
+                    {
+                        if (createdAnalytical != null)
+                        {
+                            if (typeId != ElementId.InvalidElementId)
+                                createdAnalytical.SectionTypeId = typeId;
+
+                            if (materialId != ElementId.InvalidElementId)
+                                createdAnalytical.MaterialId = materialId;
+
+                            createdAnalytical.StructuralRole = AnalyticalStructuralRole.StructuralRoleBeam;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHandler.Log($"Error setting analytical properties for temporary beam {beam.Id}: {ex.Message}", DebugHandler.LogLevel.WARNING);
+                    }
+                }
+                else
+                {
+                    DebugHandler.Log($"Temporary beam {beam.Id} has no valid location curve.", DebugHandler.LogLevel.WARNING);
+                }
+
+                // Get the Mark parameter
+                string mark = beam.get_Parameter(BuiltInParameter.ALL_MODEL_MARK)?.AsString() ?? string.Empty;
+
+                var info = new RevitAnalyticalElementInfo
+                {
+                    PhRevitId = beam.Id,
+                    Element = beam,
+                    AnalyticalMember = createdAnalytical,
+                    AnRevitId = createdAnalytical?.Id,
+                    AnalyticalElementType = AnalyticalElementType.TemporaryBeam,
+                    Mark = mark,
+                    FamilyType = beamType,
+                    Material = material,
+                    SectionName = sectionName,
+                    MaterialName = materialName,
+                };
+
+                result.Add(info);
+            }
+
+            DebugHandler.Log($"Finished analytical temporary beam processing. Created {result.Count} analytical temporary beam infos.", DebugHandler.LogLevel.INFO);
+            return result;
+        }
+
+
 
         private static XYZ ComputeDownOffsetVector(Curve axisCurve, double sectionHeight)
         {
@@ -243,7 +373,12 @@ namespace RevitAnalytics.RevitPnA
             {
                 foreach (var beam in beams)
                 {
-                    string mark = beam.LookupParameter("Mark")?.AsString() ?? string.Empty;
+                    string mark = beam.get_Parameter(BuiltInParameter.ALL_MODEL_MARK)?.AsString() ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(mark))
+                    {
+                        DebugHandler.Log($"Beam {beam.Id} has no Mark parameter.", DebugHandler.LogLevel.WARNING);
+                        continue; // Skip beams without a Mark
+                    }
 
                     AnalyticalElementType type = AnalyticalElementType.SecondaryBeam;
                     if (mark.IndexOf("M-B", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -298,7 +433,6 @@ namespace RevitAnalytics.RevitPnA
                         if (refLoc != null && refLoc.Curve != null)
                         {
                             axisForVector = refLoc.Curve;
-                            DebugHandler.Log($"Secondary beam {beam.Id}: using reference beam {referenceBeam.Id} axis for offset.", DebugHandler.LogLevel.DEBUG);
                         }
                     }
 

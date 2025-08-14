@@ -38,7 +38,6 @@ namespace RevitAnalytics
                         DebugHandler.OpenLogFile();
                         return Result.Cancelled;
                     }
-                
 
                     DebugHandler.Log("Connecting physical and analytical elements...", DebugHandler.LogLevel.INFO);
                     PnAConnector.ConnectPhysicalAndAnalytical(doc, analyticalRevitInfos);

@@ -23,7 +23,7 @@ namespace RevitAnalytics.Core
         public static void LogAnalyticalPanelElementInfo(AnalyticalPanelElementInfo panelElement)
         {
             DebugHandler.Log($"Logging AnalyticalPanelElementInfo for {panelElement.Label}:", DebugHandler.LogLevel.INFO);
-            DebugHandler.Log($"RevitId: {panelElement.RevitId}", DebugHandler.LogLevel.INFO);
+            DebugHandler.Log($"RevitId: {panelElement.Mark}", DebugHandler.LogLevel.INFO);
             DebugHandler.Log($"Label: {panelElement.Label}", DebugHandler.LogLevel.INFO);
             DebugHandler.Log($"SectionName: {panelElement.SectionName}", DebugHandler.LogLevel.INFO);
             DebugHandler.Log($"MaterialName: {panelElement.MaterialName}", DebugHandler.LogLevel.INFO);

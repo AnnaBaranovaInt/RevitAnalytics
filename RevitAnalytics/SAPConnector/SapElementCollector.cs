@@ -53,7 +53,7 @@ namespace RevitAnalytics.SAPConnector
                 }
 
                 // Extract Revit ID
-                int revitId = label.StartsWith("Revit_") ? int.Parse(label.Substring(6)) : 0;
+                string mark = label;
 
                 // Retrieve shell properties
                 int shellType = 0;
@@ -67,7 +67,7 @@ namespace RevitAnalytics.SAPConnector
 
                 var shellElement = new AnalyticalPanelElementInfo
                 {
-                    RevitId = new Autodesk.Revit.DB.ElementId(revitId),
+                    Mark = mark,
                     CornerPoints = cornerPoints,
                     Label = label,
                     MaterialName = materialName,
@@ -113,18 +113,13 @@ namespace RevitAnalytics.SAPConnector
                 sapModel.PointObj.GetCoordCartesian(endPointName, ref endX, ref endY, ref endZ);
 
                 // Extract Revit ID from label if it starts with "Revit_"
-                int revitId = 0;
-                if (label.StartsWith("Revit_"))
-                {
-                    string idString = label.Substring(6);
-                    int.TryParse(idString, out revitId);
-                }
+                string mark = label;
                 var materialName = Utils.MaterialUtils.GetMaterialName(sapModel, label);
                 var materialInfo = Utils.MaterialUtils.GetMaterialInfoByName(sapModel, materialName);
 
                 var element = new AnalyticalFrameElementInfo
                 {
-                    RevitId = new Autodesk.Revit.DB.ElementId(revitId),
+                    Mark = mark,
                     StartX = startX,
                     StartY = startY,
                     StartZ = startZ,

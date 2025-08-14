@@ -54,6 +54,7 @@ namespace RevitAnalytics.RevitPnA
                 CopyStringParam(doc, info.Element, analyticalElem, "ITS_Leading Role");
 
                 // Optionally reflect a couple of these into info as well (convenient cache)
+                // Optionally reflect a couple of these into info as well (convenient cache)
                 string frameName = GetStringFromInstanceOrType(info.Element, "ITS_Frame Name");
                 if (!string.IsNullOrEmpty(frameName))
                 {
@@ -67,6 +68,22 @@ namespace RevitAnalytics.RevitPnA
                     info.LeadingRole = leadingRole;
                     DebugHandler.Log($"Cached 'ITS_Leading Role'='{leadingRole}' for AnalyticalId={analyticalElem.Id}", DebugHandler.LogLevel.INFO);
                 }
+
+                // Assign FirstSupportName and SecondSupportName properties
+                string firstSupportName = GetStringFromInstanceOrType(info.Element, "ITS_First Support Name");
+                if (!string.IsNullOrEmpty(firstSupportName))
+                {
+                    info.FirstSupportName = firstSupportName;
+                    DebugHandler.Log($"Cached 'ITS_First Support Name'='{firstSupportName}' for AnalyticalId={analyticalElem.Id}", DebugHandler.LogLevel.INFO);
+                }
+
+                string secondSupportName = GetStringFromInstanceOrType(info.Element, "ITS_Second Support Name");
+                if (!string.IsNullOrEmpty(secondSupportName))
+                {
+                    info.SecondSupportName = secondSupportName;
+                    DebugHandler.Log($"Cached 'ITS_Second Support Name'='{secondSupportName}' for AnalyticalId={analyticalElem.Id}", DebugHandler.LogLevel.INFO);
+                }
+
 
                 // -------- 2) Material Type (BuiltIn: PHY_MATERIAL_PARAM_TYPE) -> info.MaterialType --------
                 int matTypeInt;

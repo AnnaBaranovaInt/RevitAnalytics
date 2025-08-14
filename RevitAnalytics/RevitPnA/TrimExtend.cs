@@ -70,6 +70,23 @@ namespace RevitAnalytics.RevitPnA
                     }
                 }
             }
+
+            // 3) Secondary beams with "_01": re-wire by support mains
+
+
+            // Recopila todos los beams (main y secondary) de toda la lista
+            List<RevitAnalyticalElementInfo> allBeams = analyticalRevitInfos
+                .Where(e => e.AnalyticalElementType == AnalyticalElementType.MainBeam
+                         || e.AnalyticalElementType == AnalyticalElementType.SecondaryBeam)
+                .ToList();
+
+            int secondaryCount = allBeams.Count(e => e.AnalyticalElementType == AnalyticalElementType.SecondaryBeam);
+            DebugHandler.Log($"ApplySecondaryBeamSupportRule: About to process {allBeams.Count} beams, {secondaryCount} secondary beams.", DebugHandler.LogLevel.INFO);
+
+
+            DebugHandler.Log($"Calling ApplySecondaryBeamSupportRule for all beams: {allBeams.Count} total.", DebugHandler.LogLevel.INFO);
+
+            ApplySecondaryBeamSupportRule(doc, allBeams);
         }
 
         // ---------- Selection helpers ----------
@@ -311,5 +328,207 @@ namespace RevitAnalytics.RevitPnA
             DebugHandler.Log($"Beam/Column trimmed at {ip}. Beam kept end {farIdx}, column kept lower start.",
                              DebugHandler.LogLevel.INFO);
         }
+
+
+        /// For secondary beams whose Mark ends with "_01":
+        /// - read First/Second support names,
+        /// - find the two MAIN beams with those Marks,
+        /// - build a new analytical line from the endpoint of main#1 closest to the secondary’s start
+        ///   to the endpoint of main#2 closest to the secondary’s end,
+        /// - set that as the secondary beam’s analytical curve.
+        private static void ApplySecondaryBeamSupportRule(Document doc, List<RevitAnalyticalElementInfo> beamsInFrame)
+        {
+            if (beamsInFrame == null)
+            {
+                DebugHandler.Log("ApplySecondaryBeamSupportRule: beamsInFrame is null.", DebugHandler.LogLevel.WARNING);
+                return;
+            }
+            if (beamsInFrame.Count == 0)
+            {
+                DebugHandler.Log("ApplySecondaryBeamSupportRule: beamsInFrame is empty.", DebugHandler.LogLevel.INFO);
+                return;
+            }
+
+           
+
+            // Index MAIN beams by Mark (case-insensitive)
+            Dictionary<string, RevitAnalyticalElementInfo> mainByMark =
+                beamsInFrame
+                .Where(b => b != null
+                         && b.AnalyticalElementType == AnalyticalElementType.MainBeam
+                         && !string.IsNullOrEmpty(b.Mark))
+                .GroupBy(b => b.Mark, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+
+            int processed = 0;
+            int skipped = 0;
+
+            foreach (RevitAnalyticalElementInfo sec in beamsInFrame)
+            {
+                if (sec == null)
+                {
+                    skipped++;
+                    continue;
+                }
+                if (sec.AnalyticalMember == null)
+                {
+                    skipped++;
+                    continue;
+                }
+                if (sec.AnalyticalElementType != AnalyticalElementType.SecondaryBeam)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                // Only those with _01 suffix
+                if (string.IsNullOrEmpty(sec.Mark) || !sec.Mark.EndsWith("_01", StringComparison.OrdinalIgnoreCase))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                Line secLine = sec.AnalyticalMember.GetCurve() as Line;
+                if (secLine == null)
+                {
+                    DebugHandler.Log($"ApplySecondaryBeamSupportRule: Skipped secondary beam {sec.AnRevitId} (curve is not a line).", DebugHandler.LogLevel.WARNING);
+                    skipped++;
+                    continue;
+                }
+
+                // Read support names from info (preferred), else from parameters
+                string firstSupport = GetSupportNameFromInfoOrParams(sec, primary: true);
+                string secondSupport = GetSupportNameFromInfoOrParams(sec, primary: false);
+
+                DebugHandler.Log($"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId} Mark='{sec.Mark}', FirstSupport='{firstSupport}', SecondSupport='{secondSupport}'.", DebugHandler.LogLevel.DEBUG);
+
+                if (string.IsNullOrWhiteSpace(firstSupport) || string.IsNullOrWhiteSpace(secondSupport))
+                {
+                    DebugHandler.Log($"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId}: missing support names ('{firstSupport}' / '{secondSupport}').", DebugHandler.LogLevel.INFO);
+                    skipped++;
+                    continue;
+                }
+
+                if (!mainByMark.TryGetValue(firstSupport, out RevitAnalyticalElementInfo main1))
+                {
+                    DebugHandler.Log($"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId}: main beam '{firstSupport}' not found.", DebugHandler.LogLevel.INFO);
+                    skipped++;
+                    continue;
+                }
+                if (!mainByMark.TryGetValue(secondSupport, out RevitAnalyticalElementInfo main2))
+                {
+                    DebugHandler.Log($"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId}: main beam '{secondSupport}' not found.", DebugHandler.LogLevel.INFO);
+                    skipped++;
+                    continue;
+                }
+
+                if (main1.AnalyticalMember == null || main2.AnalyticalMember == null)
+                {
+                    DebugHandler.Log($"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId}: one of the mains has no analytical member.", DebugHandler.LogLevel.INFO);
+                    skipped++;
+                    continue;
+                }
+
+                Line m1 = main1.AnalyticalMember.GetCurve() as Line;
+                Line m2 = main2.AnalyticalMember.GetCurve() as Line;
+                if (m1 == null || m2 == null)
+                {
+                    DebugHandler.Log($"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId}: one of the main beam curves is not a line.", DebugHandler.LogLevel.WARNING);
+                    skipped++;
+                    continue;
+                }
+
+                // Map: FirstSupport ↔ secondary start (end 0), SecondSupport ↔ secondary end (end 1)
+                XYZ secStart = secLine.GetEndPoint(0);
+                XYZ secEnd = secLine.GetEndPoint(1);
+
+                XYZ p1 = GetClosestEndpointToPoint(m1, secStart);
+                XYZ p2 = GetClosestEndpointToPoint(m2, secEnd);
+
+                if (p1 == null || p2 == null)
+                {
+                    DebugHandler.Log($"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId}: could not find closest endpoints on main beams.", DebugHandler.LogLevel.WARNING);
+                    skipped++;
+                    continue;
+                }
+
+                Line newLine = Line.CreateBound(p1, p2);
+                sec.AnalyticalMember.SetCurve(newLine);
+
+                DebugHandler.Log(
+                    $"ApplySecondaryBeamSupportRule: Secondary {sec.AnRevitId} re-wired by supports '{firstSupport}' → '{secondSupport}'.",
+                    DebugHandler.LogLevel.INFO);
+
+                processed++;
+            }
+
+            DebugHandler.Log($"ApplySecondaryBeamSupportRule: Finished. Processed: {processed}, Skipped: {skipped}.", DebugHandler.LogLevel.INFO);
+        }
+
+
+
+        private static string GetSupportNameFromInfoOrParams(RevitAnalyticalElementInfo info, bool primary)
+        {
+            // Prefer strongly-typed properties if your class defines them
+            // (Assumes properties FirstSupportName / SecondSupportName exist)
+            string name = string.Empty;
+
+            try
+            {
+                if (primary)
+                {
+                    name = info.FirstSupportName;
+                }
+                else
+                {
+                    name = info.SecondSupportName;
+                }
+            }
+            catch {
+                DebugHandler.Log($"Error reading support name from info for {info.AnRevitId}.", DebugHandler.LogLevel.ERROR);
+            }
+
+            if (!string.IsNullOrWhiteSpace(name)) return name;
+
+            // Fallback: read from instance parameters on the PHYSICAL element
+            Element e = info.Element;
+            if (e != null)
+            {
+                string paramName = primary ? "ITS_First Support Name" : "ITS_Second Support Name";
+                Parameter p = e.LookupParameter(paramName);
+                if (p != null && p.StorageType == StorageType.String)
+                {
+                    string v = p.AsString();
+                    if (!string.IsNullOrWhiteSpace(v)) return v;
+                }
+            }
+
+            // Last fallback: try analytical member parameter
+            Element an = info.AnalyticalMember;
+            if (an != null)
+            {
+                string paramName = primary ? "ITS_First Support Name" : "ITS_Second Support Name";
+                Parameter p = an.LookupParameter(paramName);
+                if (p != null && p.StorageType == StorageType.String)
+                {
+                    string v = p.AsString();
+                    if (!string.IsNullOrWhiteSpace(v)) return v;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static XYZ GetClosestEndpointToPoint(Line line, XYZ point)
+        {
+            if (line == null || point == null) return null;
+            XYZ a = line.GetEndPoint(0);
+            XYZ b = line.GetEndPoint(1);
+            double da = a.DistanceTo(point);
+            double db = b.DistanceTo(point);
+            return da <= db ? a : b;
+        }
+
     }
 }

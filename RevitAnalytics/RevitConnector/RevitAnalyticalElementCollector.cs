@@ -76,23 +76,29 @@ namespace RevitAnalytics.RevitConnector
                 if (material != null)
                 {
                     materialInfo = Utils.MaterialUtils.GetMaterialInfo(material, doc);
-                    //Utils.MaterialUtils.LogAllMaterialParameters(material);
+                    Utils.MaterialUtils.LogAllMaterialParameters(material);
                 }
                 else
                 {
-                    //task dialog too show that material is not found for an element
-                    TaskDialog.Show("Material Not Found", $"Material not found for element {elem.Id}.");
-                    DebugHandler.Log($"Material not found for element {elem.Id}.", DebugHandler.LogLevel.WARNING);
+                    TaskDialog.Show("Material Not Found", $"Material not found for element {elem.Id}. Element is not exported.");
+                    DebugHandler.Log($"Material not found for element {elem.Id}. Matreial id - {analyticalMember.MaterialId}", DebugHandler.LogLevel.WARNING);
+                    continue;
                 }
 
-                // We'll build a label from the Revit ID. 
-                // E.g. "Revit_123" or "Revit_123_frame"
-                string label = $"Revit_{elem.Id.Value}";
+                // Get ITS_Mark parameter value
+                string mark = analyticalMember.LookupParameter("ITS_Mark")?.AsString();
+                if (string.IsNullOrWhiteSpace(mark))
+                {
+                    DebugHandler.Log($"Warning: ITS_Mark parameter is empty for element {elem.Id}.", DebugHandler.LogLevel.WARNING);
+                    TaskDialog.Show("Warning", $"ITS_Mark parameter is empty for element {elem.Id}.");
+                }
+
+                string label = mark;
 
                 AnalyticalFrameElementInfo info = new AnalyticalFrameElementInfo
                 {
                     GUID = elem.UniqueId,
-                    RevitId = elem.Id,
+                    Mark = mark,
                     StartX = startX_m,
                     StartY = startY_m,
                     StartZ = startZ_m,
@@ -109,6 +115,7 @@ namespace RevitAnalytics.RevitConnector
 
                 result.Add(info);
             }
+
 
             DebugHandler.Log($"Collected {result.Count} analytical elements with valid curves.", DebugHandler.LogLevel.INFO);
             return result;
@@ -201,7 +208,7 @@ namespace RevitAnalytics.RevitConnector
 
                 string sectionName = $"{thickness * 100} cm | {material.Name}"; // Or another way to define section
 
-                string label = $"Revit_{elem.Id.Value}";
+                
 
                 // ✅ Convert boundary to a list of points (XYZ -> meters)
                 List<Tuple<double, double, double>> cornerPoints = new List<Tuple<double, double, double>>();
@@ -211,11 +218,21 @@ namespace RevitAnalytics.RevitConnector
                     cornerPoints.Add(Tuple.Create(pt.X * footToMeter, pt.Y * footToMeter, pt.Z * footToMeter));
                 }
 
+                // Get ITS_Mark parameter value
+                string mark = analyticalPanel.LookupParameter("ITS_Mark")?.AsString();
+                if (string.IsNullOrWhiteSpace(mark))
+                {
+                    DebugHandler.Log($"Warning: ITS_Mark parameter is empty for panel element {elem.Id}.", DebugHandler.LogLevel.WARNING);
+                    TaskDialog.Show("Warning", $"ITS_Mark parameter is empty for panel element {elem.Id}.");
+                }
+
+                string label = mark;
+
                 AnalyticalPanelElementInfo info = new AnalyticalPanelElementInfo
                 {
                     Label = label,
                     GUID = elem.UniqueId,
-                    RevitId = elem.Id,
+                    Mark = mark,
                     CornerPoints = cornerPoints,
                     Thickness = thickness,
                     SectionName = sectionName,
@@ -225,6 +242,7 @@ namespace RevitAnalytics.RevitConnector
                     MatAngle = 0,
                     BendingThikness = 0
                 };
+
 
                 AnalyticalPanelElementInfo.LogAnalyticalPanelElementInfo(info);
 

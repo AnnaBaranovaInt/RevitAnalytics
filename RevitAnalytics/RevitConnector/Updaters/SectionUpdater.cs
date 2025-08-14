@@ -26,7 +26,7 @@ namespace RevitAnalytics.RevitConnector.Updaters
                     if (sectionTypeId != ElementId.InvalidElementId)
                     {
                         am.SectionTypeId = sectionTypeId;
-                        DebugHandler.Log($"Updated section type from '{revitSection}' to '{sapSection}' for element {info.RevitId.Value}.", DebugHandler.LogLevel.INFO);
+                        DebugHandler.Log($"Updated section type from '{revitSection}' to '{sapSection}' for element {info.Mark}.", DebugHandler.LogLevel.INFO);
                     }
                     else
                     {
@@ -36,7 +36,7 @@ namespace RevitAnalytics.RevitConnector.Updaters
             }
             catch (Exception ex)
             {
-                DebugHandler.LogError($"Could not update section type for element {info.RevitId.Value}.", ex);
+                DebugHandler.LogError($"Could not update section type for element {info.Mark}.", ex);
             }
             }
 
@@ -53,7 +53,7 @@ namespace RevitAnalytics.RevitConnector.Updaters
             }
             catch (System.Exception ex)
             {
-                DebugHandler.LogError($"Could not update panel thickness for element {info.RevitId.Value}.", ex);
+                DebugHandler.LogError($"Could not update panel thickness for element {info.Mark}.", ex);
             }
         }
         public static void UpdatePanelThickness(AnalyticalPanel panel, AnalyticalPanelElementInfo info)
@@ -61,11 +61,11 @@ namespace RevitAnalytics.RevitConnector.Updaters
             try
             {
                 panel.Thickness = UnitUtils.ConvertToInternalUnits(info.Thickness, UnitTypeId.Meters);
-                DebugHandler.Log($"Updated panel thickness for element {info.RevitId.Value} to {info.Thickness}m.", DebugHandler.LogLevel.INFO);
+                DebugHandler.Log($"Updated panel thickness for element {info.Mark} to {info.Thickness}m.", DebugHandler.LogLevel.INFO);
             }
             catch (System.Exception ex)
             {
-                DebugHandler.LogError($"Could not update panel thickness for element {info.RevitId.Value}.", ex);
+                DebugHandler.LogError($"Could not update panel thickness for element {info.Mark}.", ex);
             }
         }
 

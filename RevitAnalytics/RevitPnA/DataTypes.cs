@@ -22,6 +22,8 @@ namespace RevitAnalytics.RevitPnA
         public Frame Frame { get; set; } // Reference to the Frame this element belongs to, if applicable
         public string Mark { get; set; }
         public string FrameName { get; set; } // Type Mark of the element, if available
+        public string FirstSupportName { get; set; } // Type Mark of the first support, if available
+        public string SecondSupportName { get; set; } // Type Mark of the second support, if available
         public string LeadingRole { get; set; } // Type Mark of the element, if available
         public double Rotation { get; set; } // Type Mark of the element, if available
         public AnalyticalElementType AnalyticalElementType { get; set; } // Type of the analytical element (e.g., Beam, Column, Wall, etc.)
